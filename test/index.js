@@ -20,6 +20,10 @@ function log (o) {
  */
 
 var special = '_doc';
+function specialFn (obj, key) {
+  return obj._doc[key];
+}
+
 
 /**
  * Tests
@@ -477,6 +481,123 @@ describe('mpath', function(){
         assert.deepEqual(
             ['nil', 'nil', [2]]
           , mpath.get('comments.comments.1.comments.val', o, special, function (v) {
+            return undefined === v ? 'nil' : v;
+          })
+        );
+        done();
+      })
+    })
+    
+    describe('with `special` as function', function(){
+      it('works', function(done){
+        assert.equal('jiro', mpath.get('name', o, specialFn));
+
+        assert.deepEqual(
+          { second: { third: [3,{ name: 'aaron' }, 9] }}
+          , mpath.get('first', o, specialFn)
+        );
+
+        assert.deepEqual(
+          { third: [3,{ name: 'aaron' }, 9] }
+          , mpath.get('first.second', o, specialFn)
+        );
+
+        assert.deepEqual(
+          [3,{ name: 'aaron' }, 9]
+          , mpath.get('first.second.third', o, specialFn)
+        );
+
+        assert.deepEqual(
+          3
+          , mpath.get('first.second.third.0', o, specialFn)
+        );
+
+        assert.deepEqual(
+          4
+          , mpath.get('first.second.third.0', o, specialFn, function (v) {
+            return 3 === v ? 4 : v;
+          })
+        );
+
+        assert.deepEqual(
+          9
+          , mpath.get('first.second.third.2', o, specialFn)
+        );
+
+        assert.deepEqual(
+          { name: 'aaron' }
+          , mpath.get('first.second.third.1', o, specialFn)
+        );
+
+        assert.deepEqual(
+          'aaron'
+          , mpath.get('first.second.third.1.name', o, specialFn)
+        );
+
+        assert.deepEqual([
+            { name: 'one' }
+          , { name: 'two', _doc: { name: '2' }}
+          , { name: 'three'
+            , comments: [{},{ comments: [{val: 'twoo'}]}]
+            , _doc: { name: '3', comments: [{},{ _doc: { comments: [{ val: 2 }] }}]}}],
+          mpath.get('comments', o, specialFn));
+
+        assert.deepEqual({ name: 'one' }, mpath.get('comments.0', o, specialFn));
+        assert.deepEqual('one', mpath.get('comments.0.name', o, specialFn));
+        assert.deepEqual('2', mpath.get('comments.1.name', o, specialFn));
+        assert.deepEqual('3', mpath.get('comments.2.name', o, specialFn));
+        assert.deepEqual('nice', mpath.get('comments.2.name', o, specialFn, function (v) {
+          return '3' === v ? 'nice' : v;
+        }));
+
+        assert.deepEqual([{},{ _doc: { comments: [{ val: 2 }] }}]
+            , mpath.get('comments.2.comments', o, specialFn));
+
+        assert.deepEqual({ _doc: { comments: [{val: 2}]}}
+            , mpath.get('comments.2.comments.1', o, specialFn));
+
+        assert.deepEqual(2, mpath.get('comments.2.comments.1.comments.0.val', o, specialFn));
+        done();
+      })
+
+      it('handles array.property dot-notation', function(done){
+        assert.deepEqual(
+          ['one', '2', '3']
+          , mpath.get('comments.name', o, specialFn)
+        );
+        assert.deepEqual(
+          ['one', 2, '3']
+          , mpath.get('comments.name', o, specialFn, function (v) {
+            return '2' === v ? 2 : v
+          })
+        );
+        done();
+      })
+
+      it('handles array.array notation', function(done){
+        assert.deepEqual(
+            [undefined, undefined, [{}, {_doc: { comments:[{val:2}]}}]]
+          , mpath.get('comments.comments', o, specialFn)
+        );
+        done();
+      })
+
+      it('handles array.array.index.array', function(done){
+        assert.deepEqual(
+            [undefined, undefined, [{val:2}]]
+          , mpath.get('comments.comments.1.comments', o, specialFn)
+        );
+        done();
+      })
+
+      it('handles array.array.index.array.prop', function(done){
+        assert.deepEqual(
+            [undefined, undefined, [2]]
+          , mpath.get('comments.comments.1.comments.val', o, specialFn)
+        );
+        assert.deepEqual(
+            ['nil', 'nil', [2]]
+          , mpath.get('comments.comments.1.comments.val', o, specialFn, function (v) {
             return undefined === v ? 'nil' : v;
           })
         );
